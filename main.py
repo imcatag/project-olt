@@ -318,7 +318,7 @@ def PlacePieceAndEvaluate(board: Board, placement: Placement) -> Tuple[Board, fl
     return newBoard, score, continueB2B, continueCombo
 
 class GameState:
-    def __init__(self, board: Board = Board(), activePiece: Piece = Piece.NULLPIECE, holdPiece: Piece = Piece.NULLPIECE, queue: deque = deque(), evalutaion: float = 0, b2b: int = 0, combo: int = 0) -> None:
+    def __init__(self, board: Board = Board(), activePiece: Piece = Piece.NULLPIECE, holdPiece: Piece = Piece.NULLPIECE, queue: deque = deque(), evalutaion: float = 0, b2b: int = 0, combo: int = 0, lastMove = None) -> None:
         self.board = board
         self.activePiece = activePiece
         self.holdPiece = holdPiece
@@ -326,6 +326,39 @@ class GameState:
         self.evaluation = evalutaion
         self.b2b = b2b
         self.combo = combo
+        self.lastMove = lastMove
+
+    def get_game_repr(self):
+        square_width = globalHeight//2 # hard lock to 20 right now
+        game_state_repr = [[0 for _ in range(square_width)] for _ in range(square_width)]
+
+        for i in range(square_width):
+            for j in range(globalWidth):
+                game_state_repr[i][j] = self.board.cells[i][j]
+
+        # place active piece then 5 queue pieces to the right of the board, each piece should have 3 rows
+        queueCol = globalWidth + 3
+        
+        piece = self.activePiece
+        for i in range(min(5, len(self.queue))):
+            position = Vector2Int(globalWidth + 5, i * 2 + 1)
+            for cell in Cells[piece][0]:
+                game_state_repr[position.y + cell.y][position.x + cell.x] = 1
+            piece = self.queue[i]
+        
+        
+        # add hold piece to the bottom of the board
+        if self.holdPiece != Piece.NULLPIECE:
+            position = Vector2Int(globalWidth + 5, square_width - 2)
+            piece = self.holdPiece
+            for cell in Cells[piece][0]:
+                game_state_repr[position.y + cell.y][position.x + cell.x] = 1
+        
+        # make sure everything is 0 or 1
+        for i in range(square_width):
+            for j in range(square_width):
+                game_state_repr[i][j] = int(game_state_repr[i][j])
+        return game_state_repr
 
     def generateChildren(self) -> List['GameState']:
         children = []
@@ -343,7 +376,12 @@ class GameState:
             newBoard, score, continueB2B, continueCombo = PlacePieceAndEvaluate(self.board, placement)
             newQueue = deepcopy(self.queue)
             newActivePiece = newQueue.popleft() if newQueue else Piece.NULLPIECE
-            children.append(GameState(newBoard, newActivePiece, self.holdPiece, newQueue, self.evaluation + score, self.b2b + continueB2B, self.combo + continueCombo))
+            lastMove = {"piece": self.activePiece, "rotation": placement.rotation, "position": placement.position, "spin": "none"}
+            if placement.spin == 2:
+                lastMove["spin"] = "full"
+            elif placement.spin == 1:
+                lastMove["spin"] = "mini"
+            children.append(GameState(newBoard, newActivePiece, self.holdPiece, newQueue, self.evaluation + score, self.b2b + continueB2B, self.combo + continueCombo, lastMove))
 
         # case 2
         
@@ -365,7 +403,13 @@ class GameState:
                 newBoard, score, continueB2B, continueCombo = PlacePieceAndEvaluate(self.board, placement)
                 newQueue = deepcopy(newState.queue)
                 newActivePiece = newQueue.popleft() if newQueue else Piece.NULLPIECE
-                children.append(GameState(newBoard, newActivePiece, newHoldPiece, newQueue, self.evaluation + score, self.b2b + continueB2B, self.combo + continueCombo))
+
+                lastMove = {"piece": newState.activePiece, "rotation": placement.rotation, "position": placement.position, "spin": "none"}
+                if placement.spin == 2:
+                    lastMove["spin"] = "full"
+                elif placement.spin == 1:
+                    lastMove["spin"] = "mini"
+                children.append(GameState(newBoard, newActivePiece, newHoldPiece, newQueue, self.evaluation + score, self.b2b + continueB2B, self.combo + continueCombo, lastMove))
         
         # case 3
                 
@@ -380,7 +424,13 @@ class GameState:
                 newBoard, score, continueB2B, continueCombo = PlacePieceAndEvaluate(self.board, placement)
                 newQueue = deepcopy(newState.queue)
                 newActivePiece = newQueue.popleft() if newQueue else Piece.NULLPIECE
-                children.append(GameState(newBoard, newActivePiece, newState.holdPiece, newQueue, self.evaluation + score, self.b2b + continueB2B, self.combo + continueCombo))
+                
+                lastMove = {"piece": newState.activePiece, "rotation": placement.rotation, "position": placement.position, "spin": "none"}
+                if placement.spin == 2:
+                    lastMove["spin"] = "full"
+                elif placement.spin == 1:
+                    lastMove["spin"] = "mini"
+                children.append(GameState(newBoard, newActivePiece, newState.holdPiece, newQueue, self.evaluation + score, self.b2b + continueB2B, self.combo + continueCombo, lastMove))
         
         return children
 
@@ -388,13 +438,14 @@ class GameState:
         result = self.board.__str__()
         result += f"Piece: {self.activePiece}\n"
         result += f"Held Piece: {self.holdPiece}\n"
-        result += f"Queue: {self.queue}\n"
+        visibleQueue = list(self.queue)[:5]
+        result += f"Queue: {visibleQueue}\n"
 
         return result
     
-gs = GameState(queue = deque([Piece.J, Piece.L, Piece.O, Piece.S, Piece.T, Piece.Z]), activePiece = Piece.I)
+# gs = GameState(queue = deque([Piece.J]), activePiece = Piece.Z, holdPiece=Piece.O)
 
-while gs.queue:
-    print(gs)
-    children = gs.generateChildren()
-    gs = max(children, key = lambda x: x.evaluation)
+# for gs1 in gs.generateChildren():
+
+
+#     print(gs1)
