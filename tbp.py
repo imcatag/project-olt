@@ -12,15 +12,13 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 info = {"name": "olt", "version": "0.0.1", "author": "imcatag", "features" : []}
 
 print(json.dumps(info))
-
-# recieve rules
 rules = input()
-
-# if rules does not have "type" = "rules", stop
 rules = json.loads(rules, object_hook=lambda d: SimpleNamespace(**d))
-if rules.type != "rules":
-    print("error")
-    exit()
+# recieve rules
+while rules.type != "rules":
+
+    rules = input()
+    rules = json.loads(rules, object_hook=lambda d: SimpleNamespace(**d))
 
 ready = {"type": "ready"}
 
@@ -124,7 +122,7 @@ while True:
         queuepls = []
 
         if next_state == False:
-            print("error")
+            print("error_state")
             exit()
         
     if message.type == "new_piece":
