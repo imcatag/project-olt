@@ -26,7 +26,6 @@ class DQNAgent:
         self.total_steps = 0
         self.play_mode = play_mode
         self.total_pieces_placed = 0
-        self.tspins_done = 0
 
         # a list of dictionaries that store (s_t, a_t, r_t, s_t+1)
         self.memory_buffer = list()
@@ -73,7 +72,7 @@ class DQNAgent:
         zipped = list(zip(next_states, predictions))
         zipped.sort(key=lambda x: x[1], reverse=True)
        
-        # 70% chance to choose top move, 30% chance to choose randomly from top 3
+        # 90% chance to choose top move, 10% chance to choose randomly from top 3
         r1 = random.uniform(0, 1)
         if r1 < 0.9:
             return zipped[0][0]
@@ -141,30 +140,31 @@ class DQNAgent:
             print('episode: ', ep)
             print('exploration rate: ', self.exploration_prob)
             print('Total pieces placed: ', self.total_pieces_placed)
-            print('T-spins done: ', self.tspins_done)
             print('<------------------------------->')
             print('playing...')
-            self.state = GameState(self.empty_board, pieceQueue[self.state.pieceCount + 1])
+
+            defaultbag = [Piece.T, Piece.J, Piece.Z, Piece.O, Piece.S, Piece.L, Piece.I]
+            pieceQueue = []
+
+            for i in range(400):
+                shuffle(defaultbag)
+                pieceQueue += defaultbag
+            self.state = GameState(self.empty_board, activePiece=pieceQueue[self.state.pieceCount], queue=deque(pieceQueue[self.state.pieceCount + 2:]))
 
             while True:
                 next_possible_states = self.state.generateChildren()
                 terminated = len(next_possible_states) == 0
 
-                if terminated:
+                if terminated or self.state.pieceCount >= 2500:
                     self.update_exploration_probability()
                     break
                 
                 next_state = self.get_next_state(next_possible_states)
-                if next_state.features[6] >= 0: 
-                    self.tspins_done += 1 
                 self.total_pieces_placed += 1
                 reward = next_state.evaluation # not the best reward
                 self.total_steps += 1
 
-                if ep <= 275:
-                    self.store_episode(self.state, reward, next_state, terminated) 
-                elif next_state.features[4] <= 10 or random.uniform(0, 1) < 0.36:
-                    self.store_episode(self.state, reward, next_state, terminated) 
+                self.store_episode(self.state, reward, next_state, terminated) 
                 
                 self.state = deepcopy(next_state)
 
@@ -187,7 +187,7 @@ class DQNAgent:
             pieceQueue += defaultbag
 
         board = Board()
-        state = GameState(queue = deque(pieceQueue), activePiece = Piece.J, holdPiece=Piece.O)
+        state = GameState(queue = deque(pieceQueue[1:]), activePiece = pieceQueue[0])
 
         while True:
             next_possible_states = state.generateChildren()
@@ -199,4 +199,4 @@ class DQNAgent:
             print(state)
             state = deepcopy(next_state)
 
-            time.sleep(1)
+            time.sleep(0.2)

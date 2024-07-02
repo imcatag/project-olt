@@ -11,6 +11,7 @@ globalHeight = 40
 
 weights = {'lineClears' : [0, -2, -2, -2, 15], 'TSpin' : [0, 5, 15, 25] , 'TSpinMini' : [0, 0, 0], 'wellKnown' : 6, 'perfectClear' : 30, 'height': 0, 'overHalf': -0.12, 'spikiness' : -0.5, 'covered' : -1, 'gaps' : -2, 'wastedT' : -2}
 
+
 class Placement:
     def __init__(self, piece: Piece, rotation: int, position: Vector2Int, spin: int = 0) -> None:
         self.piece = piece
@@ -318,7 +319,7 @@ def PlacePieceAndEvaluate(board: Board, placement: Placement) -> Tuple[Board, fl
     return newBoard, score, continueB2B, continueCombo
 
 class GameState:
-    def __init__(self, board: Board = Board(), activePiece: Piece = Piece.NULLPIECE, holdPiece: Piece = Piece.NULLPIECE, queue: deque = deque(), evalutaion: float = 0, b2b: int = 0, combo: int = 0, lastMove = None) -> None:
+    def __init__(self, board: Board = Board(), activePiece: Piece = Piece.NULLPIECE, holdPiece: Piece = Piece.NULLPIECE, queue: deque = deque(), evalutaion: float = 0, b2b: int = 0, combo: int = 0, lastMove = None, pieceCount = 0) -> None:
         self.board = board
         self.activePiece = activePiece
         self.holdPiece = holdPiece
@@ -327,6 +328,8 @@ class GameState:
         self.b2b = b2b
         self.combo = combo
         self.lastMove = lastMove
+
+        self.pieceCount = pieceCount
 
     def get_game_repr(self):
         square_width = globalHeight//2 # hard lock to 20 right now
@@ -381,7 +384,7 @@ class GameState:
                 lastMove["spin"] = "full"
             elif placement.spin == 1:
                 lastMove["spin"] = "mini"
-            children.append(GameState(newBoard, newActivePiece, self.holdPiece, newQueue, self.evaluation + score, self.b2b + continueB2B, self.combo + continueCombo, lastMove))
+            children.append(GameState(newBoard, newActivePiece, self.holdPiece, newQueue, self.evaluation + score, self.b2b + continueB2B, self.combo + continueCombo, lastMove, self.pieceCount + 1))
 
         # case 2
         
@@ -394,7 +397,6 @@ class GameState:
             newQueue = deepcopy(self.queue)
             newHoldPiece = self.activePiece
             newActivePiece = newQueue.popleft() if newQueue else Piece.NULLPIECE
-
             
             newState = GameState(self.board, newActivePiece, newHoldPiece, newQueue, self.evaluation, self.b2b, self.combo)
             placements = newState.board.findPlacements(newActivePiece)
@@ -409,7 +411,7 @@ class GameState:
                     lastMove["spin"] = "full"
                 elif placement.spin == 1:
                     lastMove["spin"] = "mini"
-                children.append(GameState(newBoard, newActivePiece, newHoldPiece, newQueue, self.evaluation + score, self.b2b + continueB2B, self.combo + continueCombo, lastMove))
+                children.append(GameState(newBoard, newActivePiece, newHoldPiece, newQueue, self.evaluation + score, self.b2b + continueB2B, self.combo + continueCombo, lastMove, self.pieceCount + 1))
         
         # case 3
                 
@@ -430,7 +432,7 @@ class GameState:
                     lastMove["spin"] = "full"
                 elif placement.spin == 1:
                     lastMove["spin"] = "mini"
-                children.append(GameState(newBoard, newActivePiece, newState.holdPiece, newQueue, self.evaluation + score, self.b2b + continueB2B, self.combo + continueCombo, lastMove))
+                children.append(GameState(newBoard, newActivePiece, newState.holdPiece, newQueue, self.evaluation + score, self.b2b + continueB2B, self.combo + continueCombo, lastMove, self.pieceCount + 1))
         
         return children
 

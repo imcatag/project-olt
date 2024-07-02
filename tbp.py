@@ -5,7 +5,15 @@ from deep_q import *
 import json
 from types import SimpleNamespace
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+# os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
+
+# # DEBUG LOGS
+# import sys
+# import datetime
+# now = datetime.datetime.now()
+# f = open("logs" + str(now) + ".txt", "w")
+# f.write("yo\n")
 
 # send information about bot
 
@@ -98,6 +106,7 @@ while True:
         activePiece = stringToPiece(message.queue[0])
 
         pieceQueue = []
+        queuepls = []
 
         # convert to Piece enum objects
         for i in range(1, len(message.queue)):
@@ -174,8 +183,12 @@ while True:
         suggestion["moves"][0]["location"]["type"] = suggestion["moves"][0]["location"]["type"].name
         
         print(json.dumps(suggestion))
-        continue
 
+        # print board state to logs
+        # print(agent.state.board, agent.state.activePiece, agent.state.holdPiece, agent.state.queue, file=f)
+        continue
+    
+    # print current board with type "debug"
     # # print current board, piece, holdpiece, and queue
     # print("!!!!")
     # print(agent.state.board)
